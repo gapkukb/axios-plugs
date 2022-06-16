@@ -1,15 +1,11 @@
 import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
+import AxiosPlus, { RequestConfig } from "../core";
 
 export interface RetryOptions {
-	retryLimit: number;
-	retryDelay: number;
-	should(error: AxiosError): Boolean;
-}
-interface Plus extends AxiosRequestConfig {
-	retryLimit: number;
-	retryDelay: number;
-	__retried: number;
-	should(error: AxiosError): Boolean;
+	__retried?: number;
+	retryLimit?: number;
+	retryDelay?: number;
+	retryShould?(error: AxiosError): Boolean;
 }
 
 /**
@@ -26,29 +22,38 @@ interface Plus extends AxiosRequestConfig {
         console.log("Error", error.message);
     }
  */
-export const retry = function (http: AxiosInstance = axios, options?: RetryOptions) {
-	let _default: RetryOptions = {
-		retryLimit: 3,
-		retryDelay: 3000,
-		// 服务端错误才重试
-		should: (error) => error.response?.status! >= 500,
-	};
-	Object.assign(http.defaults, _default, options);
-	http.interceptors.response.use(undefined, (err: AxiosError) => {
-		const c: Plus = err.config as any;
-		// 判断是否配置了重试
-		if (!c.retryLimit || !c.should!(err)) return Promise.reject(err);
-
-		c.__retried = c.__retried ?? c.retryLimit;
-		if (c.__retried--) {
+export default function retry(axios: AxiosPlus) {
+	axios.defaults.transformRequest.push(function beforeRetry(this: RequestConfig, data) {
+		if (!this.__retried) {
+			this.retryLimit ??= 3;
+			this.retryDelay ??= 3000;
+			this.retryShould ??= (e) => e.response?.status! >= 500 || e.code === "ECONNABORTED";
+		}
+		return data;
+	});
+	axios.interceptors.response.use(
+		undefined,
+		(err: AxiosError) => {
+			console.log("retry");
+			const c: RequestConfig = err.config as any;
+			//limit = falsy 不启用重试
+			//limit = retried 达到次数上限
+			//should=>false 不满足重试条件
+			if (!c.retryLimit || c.__retried === c.retryLimit || !c.retryShould!(err)) return Promise.reject(err);
 			return new Promise((resolve) => {
 				setTimeout(() => {
-					console.log("retrying....");
-					resolve(http.request(c));
+					c.__retried ??= 0;
+					c.__retried!++;
+					console.log(`正在进行第${c.__retried}/${c.retryLimit}次重试`);
+					resolve(axios.request(c));
 				}, c.retryDelay);
 			});
+		},
+		{
+			runWhen(config: RequestConfig) {
+				return config.__retried === undefined;
+			},
 		}
-		return Promise.reject(err);
-	});
-	return http;
-};
+	);
+	return axios;
+}

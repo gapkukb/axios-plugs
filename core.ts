@@ -7,23 +7,33 @@ import axios, {
 	AxiosDefaults,
 	AxiosRequestTransformer,
 	AxiosResponseTransformer,
+	AxiosInterceptorManager,
+	AxiosResponse,
 } from "axios";
 //@ts-ignore
 import { merge } from "axios/lib/utils";
+import { RetryOptions } from "./plugins/retry";
 import { noop } from "./plugins/utils";
 
 type TMethod = Lowercase<Method>;
 
-export interface RequestConfig extends AxiosRequestConfig {
+export interface RequestConfig extends AxiosRequestConfig, RetryOptions {
 	cancelable?: boolean;
-	ignore?: boolean;
 	loading?: boolean;
 	__id?: number;
 	cache?: boolean;
 	dataType?: "jsonp" | "script" | "json" | "form" | "formData";
 	jsonpCallback?: string;
-	allowRepeat?: boolean;
-	abortable?: boolean;
+}
+
+export interface AxiosPlusInterceptorOptions {
+	synchronous?: boolean;
+	runWhen?: (config: RequestConfig) => boolean;
+}
+
+export interface AxiosPlusInterceptorManager<V> {
+	use<T = V>(onFulfilled?: (value: V) => T | Promise<T>, onRejected?: (error: any) => any, options?: AxiosPlusInterceptorOptions): number;
+	eject(id: number): void;
 }
 
 export class AxiosPlus extends Axios {
@@ -40,21 +50,24 @@ export class AxiosPlus extends Axios {
 		transformRequest: AxiosRequestTransformer[];
 		transformResponse: AxiosResponseTransformer[];
 	};
+	declare interceptors: {
+		request: AxiosPlusInterceptorManager<RequestConfig>;
+		response: AxiosPlusInterceptorManager<AxiosResponse<any, any>>;
+	};
 	constructor(config: RequestConfig = {} as any) {
 		super(config);
-		this.defaults = axios.defaults as any;
+		this.defaults = merge(axios.defaults, this.defaults);
 	}
 
 	register<T extends any[] = any[]>(plugin: (axios: AxiosPlus, ...config: T) => any, ...pluginConfig: T) {
 		plugin(this, ...pluginConfig);
 	}
 
-	private createMethod(method: TMethod) {
+	createMethod(method: TMethod) {
 		const _this = this;
 		const filed = ["put", "post", "patch"].includes(method) ? "data" : "params";
 		return function $request(url: string, cfg: RequestConfig = {}) {
 			dispatch.abort = noop;
-
 			function dispatch(payload?: any, config: RequestConfig = {}) {
 				const conf: RequestConfig = {
 					url,
@@ -62,7 +75,7 @@ export class AxiosPlus extends Axios {
 					[filed]: payload,
 				};
 				const mergedConfig = merge(cfg, conf, config);
-				if (mergedConfig.abortable) {
+				if (mergedConfig.cancelable !== false) {
 					const source = AxiosPlus.CancelToken.source();
 					mergedConfig.cancelToken = source.token;
 					dispatch.abort = function abort() {

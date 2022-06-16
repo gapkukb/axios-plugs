@@ -1,4 +1,4 @@
-import AxiosPlus from "../core";
+import AxiosPlus, { RequestConfig } from "../core";
 
 type Filter = typeof $filter;
 
@@ -20,13 +20,15 @@ export default function filter(axios: AxiosPlus, filter: Filter = $filter) {
 	axios.interceptors.request.use(
 		function (config) {
 			console.log("filter");
-
 			config.params = forEach(config.params, filter);
 			config.data = forEach(config.data, filter);
 			return config;
 		},
-		(err) => {
-			console.error(err);
+		undefined,
+		{
+			runWhen(config: RequestConfig) {
+				return config.__retried === undefined;
+			},
 		}
 	);
 }

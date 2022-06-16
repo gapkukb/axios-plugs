@@ -38,7 +38,7 @@ export function getScript(config: RequestConfig, isJsonp: boolean): Promise<Axio
 
 		let url = (config.baseURL || "") + config.url;
 		url = buildURL(url, config.params, config.paramsSerializer);
-		const id = config.__id!;
+		const id = config.__id!.toString(32);
 		script = document.getElementById(id) as HTMLScriptElement;
 		if (script) return _resolve();
 		script = document.createElement("script");
@@ -86,7 +86,7 @@ export function getScript(config: RequestConfig, isJsonp: boolean): Promise<Axio
 }
 
 export function adapter(config: RequestConfig, backupAdapter: AxiosAdapter) {
-	console.log("script-adpater");
+	console.log("adapter");
 	if (config.dataType === "jsonp") {
 		return getScript(config, true);
 	}
