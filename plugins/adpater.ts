@@ -1,7 +1,9 @@
-import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
+import axios, { AxiosAdapter, AxiosResponse } from "axios";
+//@ts-ignore
 import buildURL from "axios/lib/helpers/buildURL";
-import createError from "axios/lib/core/createError";
-import md5 from "md5";
+//@ts-ignore
+import AxiosError from "axios/lib/core/AxiosError";
+import AxiosPlus, { RequestConfig } from "../core";
 
 /**
  *
@@ -9,7 +11,7 @@ import md5 from "md5";
  * @param isJsonp
  * @returns
  */
-export function getScript(config: AxiosRequestConfig, isJsonp: boolean): Promise<AxiosResponse> {
+export function getScript(config: RequestConfig, isJsonp: boolean): Promise<AxiosResponse> {
 	return new Promise((resolve, reject) => {
 		let script: HTMLScriptElement;
 		let isAbort = false;
@@ -36,7 +38,7 @@ export function getScript(config: AxiosRequestConfig, isJsonp: boolean): Promise
 
 		let url = (config.baseURL || "") + config.url;
 		url = buildURL(url, config.params, config.paramsSerializer);
-		const id = md5(url);
+		const id = config.__id!;
 		script = document.getElementById(id) as HTMLScriptElement;
 		if (script) return _resolve();
 		script = document.createElement("script");
@@ -45,7 +47,7 @@ export function getScript(config: AxiosRequestConfig, isJsonp: boolean): Promise
 		// 请求失败
 		script.onerror = function (error) {
 			remove();
-			reject(createError("Network Error", config, 404));
+			reject(AxiosError("Network Error", config, 404));
 		};
 		if (isJsonp) {
 			let callbackName = `jsonp_${Math.random().toString().slice(2)}`;
@@ -66,7 +68,7 @@ export function getScript(config: AxiosRequestConfig, isJsonp: boolean): Promise
 			timer = window.setTimeout(function () {
 				remove();
 				isAbort = true;
-				reject(createError("timeout of " + timeout + "ms exceeded", config, 405));
+				reject(AxiosError("timeout of " + timeout + "ms exceeded", config, 405));
 			}, timeout);
 		}
 		// 若定义了取消操作
@@ -74,7 +76,7 @@ export function getScript(config: AxiosRequestConfig, isJsonp: boolean): Promise
 			config.cancelToken.promise.then(function () {
 				remove();
 				isAbort = true;
-				reject(createError("Cancel Error", config, 404));
+				reject(AxiosError("Cancel Error", config, 404));
 			});
 		}
 		script.src = url;
@@ -83,18 +85,24 @@ export function getScript(config: AxiosRequestConfig, isJsonp: boolean): Promise
 	});
 }
 
-export function useGetScript(http = axios) {
-	http.defaults.adapter = (config) => {
-		if (config.dataType === "jsonp") {
-			return getScript(config, true);
-		}
-		if (config.dataType === "script") {
-			return getScript(config, false);
-		}
+export function adapter(config: RequestConfig, backupAdapter: AxiosAdapter) {
+	console.log("script-adpater");
+	if (config.dataType === "jsonp") {
+		return getScript(config, true);
+	}
+	if (config.dataType === "script") {
+		return getScript(config, false);
+	}
+	return backupAdapter!(config);
+}
 
-		// 这里需要将config.adapter设置为空
-		// 否则会造成无限循环
-		return http({ ...config, adapter: undefined });
-	};
+export default function useGetScript(
+	http: AxiosPlus,
+	config?: {
+		default?: boolean;
+	}
+) {
+	const backupAdapter = http.defaults.adapter;
+	http.defaults.adapter = (config) => adapter(config, backupAdapter!);
 	return http;
 }
