@@ -18,8 +18,7 @@ export interface RequestConfig extends AxiosRequestConfig {
 	cancelable?: boolean;
 	ignore?: boolean;
 	loading?: boolean;
-	__id?: string;
-	__MD5?: string;
+	__id?: number;
 	cache?: boolean;
 	dataType?: "jsonp" | "script" | "json" | "form" | "formData";
 	jsonpCallback?: string;
