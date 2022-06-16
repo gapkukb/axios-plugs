@@ -9,31 +9,20 @@ import axios, {
 	AxiosResponseTransformer,
 	AxiosInterceptorManager,
 	AxiosResponse,
+	AxiosRequestHeaders,
+	AxiosResponseHeaders,
 } from "axios";
 //@ts-ignore
 import { merge } from "axios/lib/utils";
-import { RetryOptions } from "./plugins/retry";
-import { noop } from "./plugins/utils";
+import { noop } from "./lib/utils";
 
 type TMethod = Lowercase<Method>;
 
-export interface RequestConfig extends AxiosRequestConfig, RetryOptions {
-	cancelable?: boolean;
-	loading?: boolean;
-	__id?: number;
-	cache?: boolean;
-	dataType?: "jsonp" | "script" | "json" | "form" | "formData";
-	jsonpCallback?: string;
+export interface AxiosPlusRequestTransformer {
+	(this: AxiosRequestConfig, data: any, headers?: AxiosRequestHeaders): any;
 }
-
-export interface AxiosPlusInterceptorOptions {
-	synchronous?: boolean;
-	runWhen?: (config: RequestConfig) => boolean;
-}
-
-export interface AxiosPlusInterceptorManager<V> {
-	use<T = V>(onFulfilled?: (value: V) => T | Promise<T>, onRejected?: (error: any) => any, options?: AxiosPlusInterceptorOptions): number;
-	eject(id: number): void;
+export interface AxiosPlusResponseTransformer {
+	(this: AxiosRequestConfig, data: any, headers?: AxiosResponseHeaders): any;
 }
 
 export class AxiosPlus extends Axios {
@@ -47,14 +36,10 @@ export class AxiosPlus extends Axios {
 	static isAxiosError = axios.isAxiosError;
 
 	declare defaults: Omit<AxiosDefaults<any>, "transformRequest" | "transformResponse"> & {
-		transformRequest: AxiosRequestTransformer[];
-		transformResponse: AxiosResponseTransformer[];
+		transformRequest: AxiosPlusRequestTransformer[];
+		transformResponse: AxiosPlusResponseTransformer[];
 	};
-	declare interceptors: {
-		request: AxiosPlusInterceptorManager<RequestConfig>;
-		response: AxiosPlusInterceptorManager<AxiosResponse<any, any>>;
-	};
-	constructor(config: RequestConfig = {} as any) {
+	constructor(config = {}) {
 		super(config);
 		this.defaults = merge(axios.defaults, this.defaults);
 	}
@@ -66,10 +51,10 @@ export class AxiosPlus extends Axios {
 	createMethod(method: TMethod) {
 		const _this = this;
 		const filed = ["put", "post", "patch"].includes(method) ? "data" : "params";
-		return function $request(url: string, cfg: RequestConfig = {}) {
+		return function $request(url: string, cfg: AxiosRequestConfig = {}) {
 			dispatch.abort = noop;
-			function dispatch(payload?: any, config: RequestConfig = {}) {
-				const conf: RequestConfig = {
+			function dispatch(payload?: any, config: AxiosRequestConfig = {}) {
+				const conf: AxiosRequestConfig = {
 					url,
 					method,
 					[filed]: payload,

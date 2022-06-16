@@ -1,20 +1,12 @@
-import Axios from "./core";
-import filter from "./plugins/filter";
-import loading from "./plugins/loading";
-import setId from "./plugins/setId";
-import convert from "./plugins/convert";
-import adapter from "./plugins/adapter";
-import retry from "./plugins/retry";
+import { AxiosPlus, filter, loading, setId, convert, adapter, retry } from ".";
 
-const axios = new Axios({
+const axios = new AxiosPlus({
 	timeout: 10,
-	retryLimit: 2,
+	retryLimit: 3,
 	loading: true,
 });
 
-axios.register(filter);
-axios.register(setId);
-// axios.register(convert);
+axios.register(retry);
 axios.register(loading, {
 	open() {
 		console.log("open");
@@ -23,9 +15,10 @@ axios.register(loading, {
 		console.log("close");
 	},
 });
-
+axios.register(convert);
+axios.register(filter);
+axios.register(setId);
 // axios.register(adapter);
-axios.register(retry);
 
 const { get, post, put, delete: del } = axios.createMethods("get", "post", "put", "delete");
 

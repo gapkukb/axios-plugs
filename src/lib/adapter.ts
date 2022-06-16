@@ -1,9 +1,9 @@
-import axios, { AxiosAdapter, AxiosResponse } from "axios";
+import axios, { AxiosAdapter, AxiosRequestConfig, AxiosResponse } from "axios";
 //@ts-ignore
 import buildURL from "axios/lib/helpers/buildURL";
 //@ts-ignore
 import AxiosError from "axios/lib/core/AxiosError";
-import AxiosPlus, { RequestConfig } from "../core";
+import AxiosPlus from "../core";
 
 /**
  *
@@ -11,7 +11,7 @@ import AxiosPlus, { RequestConfig } from "../core";
  * @param isJsonp
  * @returns
  */
-export function getScript(config: RequestConfig, isJsonp: boolean): Promise<AxiosResponse> {
+export function getScript(config: AxiosRequestConfig, isJsonp: boolean): Promise<AxiosResponse> {
 	return new Promise((resolve, reject) => {
 		let script: HTMLScriptElement;
 		let isAbort = false;
@@ -85,7 +85,7 @@ export function getScript(config: RequestConfig, isJsonp: boolean): Promise<Axio
 	});
 }
 
-export function adapter(config: RequestConfig, backupAdapter: AxiosAdapter) {
+export function adapter(config: AxiosRequestConfig, backupAdapter: AxiosAdapter) {
 	console.log("adapter");
 	if (config.dataType === "jsonp") {
 		return getScript(config, true);

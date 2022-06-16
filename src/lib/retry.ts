@@ -1,5 +1,5 @@
-import axios, { AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
-import AxiosPlus, { RequestConfig } from "../core";
+import axios, { Axios, AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
+import AxiosPlus from "../core";
 
 export interface RetryOptions {
 	__retried?: number;
@@ -23,19 +23,25 @@ export interface RetryOptions {
     }
  */
 export default function retry(axios: AxiosPlus) {
-	axios.defaults.transformRequest.push(function beforeRetry(this: RequestConfig, data) {
-		if (!this.__retried) {
-			this.retryLimit ??= 3;
-			this.retryDelay ??= 3000;
-			this.retryShould ??= (e) => e.response?.status! >= 500 || e.code === "ECONNABORTED";
+	axios.interceptors.request.use(
+		function beforeRetry(config) {
+			config.retryDelay ??= 3000;
+			config.retryShould ??= (e) =>
+				e.response?.status! >= 500 || e.code === AxiosError.ECONNABORTED || e.code === AxiosError.ETIMEDOUT;
+			return config;
+		},
+		undefined,
+		{
+			runWhen(config) {
+				return !!config.retryLimit && config.__retried === undefined;
+			},
 		}
-		return data;
-	});
+	);
 	axios.interceptors.response.use(
 		undefined,
 		(err: AxiosError) => {
 			console.log("retry");
-			const c: RequestConfig = err.config as any;
+			const c = err.config as any;
 			//limit = falsy 不启用重试
 			//limit = retried 达到次数上限
 			//should=>false 不满足重试条件
@@ -50,7 +56,7 @@ export default function retry(axios: AxiosPlus) {
 			});
 		},
 		{
-			runWhen(config: RequestConfig) {
+			runWhen(config) {
 				return config.__retried === undefined;
 			},
 		}

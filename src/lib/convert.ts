@@ -1,7 +1,8 @@
-import AxiosPlus, { RequestConfig } from "../core";
+import { AxiosRequestConfig } from "axios";
+import AxiosPlus from "../core";
 
 export default function convert(axios: AxiosPlus) {
-	axios.defaults.transformRequest.unshift(function open(this: RequestConfig, data) {
+	axios.defaults.transformRequest.unshift(function open(data) {
 		if (this.__retried !== undefined) return data;
 		console.log("convert");
 		if (this.dataType === "formData") {

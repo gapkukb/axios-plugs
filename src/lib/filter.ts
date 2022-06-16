@@ -1,4 +1,4 @@
-import AxiosPlus, { RequestConfig } from "../core";
+import AxiosPlus from "../core";
 
 type Filter = typeof $filter;
 
@@ -26,7 +26,7 @@ export default function filter(axios: AxiosPlus, filter: Filter = $filter) {
 		},
 		undefined,
 		{
-			runWhen(config: RequestConfig) {
+			runWhen(config) {
 				return config.__retried === undefined;
 			},
 		}
