@@ -4,21 +4,39 @@ import { noop } from "./utils";
 let loadingCount = 0;
 export default function loading(
 	axios: AxiosPlus,
-	config: {
+	toggle: {
 		open: typeof noop;
 		close: typeof noop;
 	}
 ) {
-	axios.defaults.transformRequest.push(function open(this: RequestConfig, data) {
-		if (this.loading && !loadingCount++) {
-			config.open();
+	axios.interceptors.request.use(
+		function loadingOpen(config) {
+			if (config.loading && !loadingCount++) {
+				toggle.open();
+			}
+			return config;
+		},
+		undefined,
+		{
+			runWhen(config) {
+				return config.__retried !== undefined;
+			},
 		}
-		return data;
-	});
-	axios.defaults.transformResponse.unshift(function close(this: RequestConfig, response) {
-		if (this.loading && !--loadingCount) {
-			config.close();
+	);
+	axios.interceptors.response.use(
+		function loadingClose(response) {
+			console.log("after-loading");
+
+			if (this.loading && !--loadingCount) {
+				toggle.close();
+			}
+			return response;
+		},
+		undefined,
+		{
+			runWhen(config) {
+				return config.__retried !== undefined;
+			},
 		}
-		return response;
-	});
+	);
 }
