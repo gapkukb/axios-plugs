@@ -26,7 +26,7 @@ export default function retry(axios: AxiosPlus) {
 	axios.interceptors.request.use(
 		function beforeRetry(config) {
 			config.retryDelay ??= 3000;
-			config.retryShould ??= (e) =>
+			config.retryShould ||= (e: any) =>
 				e.response?.status! >= 500 || e.code === AxiosError.ECONNABORTED || e.code === AxiosError.ETIMEDOUT;
 			return config;
 		},
@@ -37,29 +37,22 @@ export default function retry(axios: AxiosPlus) {
 			},
 		}
 	);
-	axios.interceptors.response.use(
-		undefined,
-		(err: AxiosError) => {
-			console.log("retry");
-			const c = err.config as any;
-			//limit = falsy 不启用重试
-			//limit = retried 达到次数上限
-			//should=>false 不满足重试条件
-			if (!c.retryLimit || c.__retried === c.retryLimit || !c.retryShould!(err)) return Promise.reject(err);
-			return new Promise((resolve) => {
-				setTimeout(() => {
-					c.__retried ??= 0;
-					c.__retried!++;
-					console.log(`正在进行第${c.__retried}/${c.retryLimit}次重试`);
-					resolve(axios.request(c));
-				}, c.retryDelay);
-			});
-		},
-		{
-			runWhen(config) {
-				return config.__retried === undefined;
-			},
-		}
-	);
+
+	axios.interceptors.response.use(undefined, function retryInterceptorsResponse(err: AxiosError) {
+		console.log("retry");
+		const c = err.config as any;
+		//limit = falsy 不启用重试
+		//limit = retried 达到次数上限
+		//should=>false 不满足重试条件
+		if (!c.retryLimit || c.__retried === c.retryLimit || !c.retryShould!(err)) return Promise.reject(err);
+		return new Promise((resolve) => {
+			setTimeout(() => {
+				c.__retried ??= 0;
+				c.__retried!++;
+				console.log(`正在进行第${c.__retried}/${c.retryLimit}次重试`);
+				resolve(axios.request(c));
+			}, c.retryDelay);
+		});
+	});
 	return axios;
 }

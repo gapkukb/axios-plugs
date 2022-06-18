@@ -1,14 +1,13 @@
 import axios, { Axios, AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
 import AxiosPlus from "../core";
-import { noop } from "./utils";
 
-const store: Record<number, typeof noop> = {};
+const store: Record<number, Function> = {};
 
 export default function cancelRepeated(axios: AxiosPlus) {
 	axios.interceptors.request.use(
 		function cancelRepeatedRequest(config) {
 			store[config.__id!]?.();
-			store[config.__id!] = config.__abort;
+			store[config.__id!] = config.__abort!;
 			return config;
 		},
 		undefined,
@@ -19,7 +18,7 @@ export default function cancelRepeated(axios: AxiosPlus) {
 		}
 	);
 
-	function unmark(result: AxiosResponse | AxiosError) {
+	function cancelRepeatedResponse(result: AxiosResponse | AxiosError) {
 		const c = result.config;
 		const retrying = c.__retried !== undefined && c.__retried !== c.retryLimit;
 		if (!!c.cancelable && !c.repeatable && !retrying) {
@@ -28,6 +27,6 @@ export default function cancelRepeated(axios: AxiosPlus) {
 		return Promise["code" in result ? "reject" : "resolve"](result);
 	}
 
-	axios.interceptors.response.use(unmark, unmark);
+	axios.interceptors.response.use(cancelRepeatedResponse, cancelRepeatedResponse);
 	return axios;
 }

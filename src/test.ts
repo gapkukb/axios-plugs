@@ -6,18 +6,21 @@ const axios = new AxiosPlus({
 	loading: true,
 });
 
-axios.register(retry);
-axios.register(loading, {
-	open() {
-		console.log("open");
-	},
-	close() {
-		console.log("close");
-	},
-});
-axios.register(convert);
-axios.register(filter);
-axios.register(setId);
+// axios.register(retry, {
+//     reqIndex:0,
+//     resIndex:0
+// });
+// axios.register(loading, {
+// 	open() {
+// 		console.log("open");
+// 	},
+// 	close() {
+// 		console.log("close");
+// 	},
+// });
+// axios.register(convert);
+// axios.register(filter);
+// axios.register(setId);
 // axios.register(adapter);
 
 const { get, post, put, delete: del } = axios.createMethods("get", "post", "put", "delete");

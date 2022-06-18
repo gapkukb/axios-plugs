@@ -25,6 +25,11 @@ export interface AxiosPlusResponseTransformer {
 	(this: AxiosRequestConfig, data: any, headers?: AxiosResponseHeaders): any;
 }
 
+export type PluginOptions = {
+	reqIndex: number;
+	resIndex: number;
+};
+
 export class AxiosPlus extends Axios {
 	static Cancel = axios.Cancel;
 	static CancelToken = axios.CancelToken;
@@ -42,10 +47,26 @@ export class AxiosPlus extends Axios {
 	constructor(config = {}) {
 		super(config);
 		this.defaults = merge(axios.defaults, this.defaults);
+
+		// 改写use方法，支持按下标插入
+		Object.defineProperty(this.interceptors.request.constructor.prototype, "use", {
+			value: function use(fulfilled: any, rejected: any, options: any) {
+				if (options.index < 0) return;
+				this.handlers.splice(options.index, 0, {
+					fulfilled: fulfilled,
+					rejected: rejected,
+					synchronous: options ? options.synchronous : false,
+					runWhen: options ? options.runWhen : null,
+				});
+				return options.index;
+			},
+		});
+
+		this.interceptors.request.use(1 as any);
 	}
 
-	register<T extends any[] = any[]>(plugin: (axios: AxiosPlus, ...config: T) => any, ...pluginConfig: T) {
-		plugin(this, ...pluginConfig);
+	register<O extends object, T extends PluginOptions>(plugin: (axios: AxiosPlus, config: T & O) => any, pluginConfig: T & O) {
+		plugin(this, pluginConfig);
 	}
 
 	createMethod(method: TMethod) {
