@@ -1,4 +1,4 @@
-import { AxiosPlus, filter, loading, setId, convert, adapter, retry, cancelRepeated } from ".";
+import { AxiosPlus, filter, loading, setId, convert, adapter, retry, cancelRepeated, cancellation } from ".";
 import { abortAll } from "./core";
 
 const axios = new AxiosPlus({
@@ -7,7 +7,8 @@ const axios = new AxiosPlus({
 	loading: true,
 });
 
-// axios.register(cancelRepeated, { reqIndex: 0, resIndex: 1 });
+axios.register(cancellation, { reqIndex: 1, resIndex: -1 });
+axios.register(cancelRepeated, { reqIndex: 0, resIndex: 1 });
 // axios.register(loading, {
 // 	open() {
 // 		console.log("open");
@@ -27,8 +28,5 @@ const axios = new AxiosPlus({
 const { get, post, put, delete: del } = axios.createMethods("get", "post", "put", "delete");
 
 const getBaidu = post("http://www.baidu.com", { dataType: "form" });
-getBaidu().catch(() => console.log("failed"));
-getBaidu().catch((e) => console.log("failed"));
-abortAll();
-abortAll();
-abortAll();
+getBaidu();
+getBaidu();

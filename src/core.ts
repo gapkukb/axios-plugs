@@ -86,8 +86,9 @@ export class AxiosPlus extends Axios {
 				if (cancelable !== false) {
 					const source = AxiosPlus.CancelToken.source();
 					MC.cancelToken = source.token;
-					dispatch.abort = MC.__abort = function abort() {
-						source.cancel(merge(_this.defaults, MC));
+					dispatch.abort = MC.__abort = function abort(message: string = "Cancelled request") {
+						(message as any).__config = (abort as any).config;
+						source.cancel(message);
 					};
 					requests.add(dispatch.abort);
 				}

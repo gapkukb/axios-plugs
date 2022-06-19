@@ -22,10 +22,7 @@ export default function cancelRepeated(axios: AxiosPlus, option: PluginOptions) 
 	);
 
 	function cancelRepeatedResponse(result: AxiosResponse | AxiosError) {
-		console.log("cancel response");
-		const c = AxiosPlus.isCancel(result) ? (result as any).message : result.config;
-		console.log(c);
-
+		const c = AxiosPlus.isCancel(result) ? (result as any).message.__config : result.config;
 		const retrying = c.__retried !== undefined && c.__retried !== c.retryLimit;
 		if (!!c.cancelable && !c.repeatable && !retrying) {
 			delete store[result.config.__id!];
