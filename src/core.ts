@@ -25,10 +25,10 @@ export interface AxiosPlusResponseTransformer {
 	(this: AxiosRequestConfig, data: any, headers?: AxiosResponseHeaders): any;
 }
 
-export type PluginOptions = {
+export type PluginOptions<T = unknown> = {
 	reqIndex: number;
 	resIndex: number;
-};
+} & T;
 
 export class AxiosPlus extends Axios {
 	static Cancel = axios.Cancel;
@@ -44,7 +44,8 @@ export class AxiosPlus extends Axios {
 		transformRequest: AxiosPlusRequestTransformer[];
 		transformResponse: AxiosPlusResponseTransformer[];
 	};
-	constructor(config = {}) {
+	constructor(private config: AxiosRequestConfig = {}) {
+		config.cancelable ??= true;
 		super(config);
 		this.defaults = merge(axios.defaults, this.defaults);
 
@@ -61,11 +62,9 @@ export class AxiosPlus extends Axios {
 				return options.index;
 			},
 		});
-
-		this.interceptors.request.use(1 as any);
 	}
 
-	register<O extends object, T extends PluginOptions>(plugin: (axios: AxiosPlus, config: T & O) => any, pluginConfig: T & O) {
+	register<T = any>(plugin: (axios: AxiosPlus, config: T) => any, pluginConfig: T) {
 		plugin(this, pluginConfig);
 	}
 
@@ -80,15 +79,21 @@ export class AxiosPlus extends Axios {
 					method,
 					[filed]: payload,
 				};
-				const mergedConfig = merge(cfg, conf, config);
-				if (mergedConfig.cancelable !== false) {
+				//mergedConfig
+				const MC = merge(cfg, conf, config);
+				MC.__abort = noop;
+				const cancelable = MC.cancelable ?? _this.config.cancelable;
+				if (cancelable !== false) {
 					const source = AxiosPlus.CancelToken.source();
-					mergedConfig.cancelToken = source.token;
-					dispatch.abort = function abort() {
-						source.cancel(mergedConfig as any);
+					MC.cancelToken = source.token;
+					dispatch.abort = MC.__abort = function abort() {
+						source.cancel(merge(_this.defaults, MC));
 					};
+					requests.add(dispatch.abort);
 				}
-				return _this.request(mergedConfig);
+				return _this.request(MC).finally(() => {
+					requests.delete(dispatch.abort);
+				});
 			}
 
 			return dispatch;
@@ -104,3 +109,10 @@ export class AxiosPlus extends Axios {
 }
 
 export default AxiosPlus;
+
+const requests: Set<Function> = new Set();
+export function abortAll() {
+	requests.forEach((item) => {
+		item();
+	});
+}

@@ -1,5 +1,5 @@
 import axios, { Axios, AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
-import AxiosPlus from "../core";
+import AxiosPlus, { PluginOptions } from "../core";
 
 export interface RetryOptions {
 	__retried?: number;
@@ -22,7 +22,7 @@ export interface RetryOptions {
         console.log("Error", error.message);
     }
  */
-export default function retry(axios: AxiosPlus) {
+export default function retry(axios: AxiosPlus, option: PluginOptions) {
 	axios.interceptors.request.use(
 		function beforeRetry(config) {
 			config.retryDelay ??= 3000;
@@ -35,24 +35,34 @@ export default function retry(axios: AxiosPlus) {
 			runWhen(config) {
 				return !!config.retryLimit && config.__retried === undefined;
 			},
+			index: option.reqIndex,
 		}
 	);
 
-	axios.interceptors.response.use(undefined, function retryInterceptorsResponse(err: AxiosError) {
-		console.log("retry");
-		const c = err.config as any;
-		//limit = falsy 不启用重试
-		//limit = retried 达到次数上限
-		//should=>false 不满足重试条件
-		if (!c.retryLimit || c.__retried === c.retryLimit || !c.retryShould!(err)) return Promise.reject(err);
-		return new Promise((resolve) => {
-			setTimeout(() => {
-				c.__retried ??= 0;
-				c.__retried!++;
-				console.log(`正在进行第${c.__retried}/${c.retryLimit}次重试`);
-				resolve(axios.request(c));
-			}, c.retryDelay);
-		});
-	});
+	axios.interceptors.response.use(
+		undefined,
+		function retryInterceptorsResponse(err: AxiosError) {
+			console.log(err.config);
+
+			console.log("retry");
+			const c = err.config as any;
+			//limit = falsy 不启用重试
+			//limit = retried 达到次数上限
+			//should=>false 不满足重试条件
+			return Promise.reject(err);
+			// if (!c.retryLimit || c.__retried === c.retryLimit || !c.retryShould!(err)) return Promise.reject(err);
+			return new Promise((resolve) => {
+				setTimeout(() => {
+					c.__retried ??= 0;
+					c.__retried!++;
+					console.log(`正在进行第${c.__retried}/${c.retryLimit}次重试`);
+					resolve(axios.request(c));
+				}, c.retryDelay);
+			});
+		},
+		{
+			index: option.resIndex,
+		}
+	);
 	return axios;
 }

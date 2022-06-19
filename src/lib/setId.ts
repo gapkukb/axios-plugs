@@ -1,9 +1,9 @@
 import { stringify } from "qs";
-import AxiosPlus from "../core";
+import AxiosPlus, { PluginOptions } from "../core";
 import { getHash } from "./utils";
 
 const compare = { sort: (a: string, b: string) => a.localeCompare(b) };
-export default function setId(axios: AxiosPlus) {
+export default function setId(axios: AxiosPlus, option: PluginOptions) {
 	axios.interceptors.request.use(
 		function $setId(config) {
 			console.log("setId");
@@ -18,7 +18,7 @@ export default function setId(axios: AxiosPlus) {
 			runWhen(config) {
 				return config.__id === undefined;
 			},
-			synchronous: true,
+			index: option.reqIndex,
 		}
 	);
 }

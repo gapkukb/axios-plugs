@@ -1,12 +1,14 @@
 import axios, { Axios, AxiosError, AxiosInstance, AxiosRequestConfig, AxiosResponse } from "axios";
-import AxiosPlus from "../core";
+import AxiosPlus, { PluginOptions } from "../core";
 
 const store: Record<number, Function> = {};
 
-export default function cancelRepeated(axios: AxiosPlus) {
+export default function cancelRepeated(axios: AxiosPlus, option: PluginOptions) {
 	axios.interceptors.request.use(
 		function cancelRepeatedRequest(config) {
-			store[config.__id!]?.();
+			console.log("cancel request");
+
+			store[config.__id!]?.(config);
 			store[config.__id!] = config.__abort!;
 			return config;
 		},
@@ -15,11 +17,15 @@ export default function cancelRepeated(axios: AxiosPlus) {
 			runWhen(config) {
 				return !!config.cancelable && !config.repeatable && config.__retried === undefined;
 			},
+			index: option.reqIndex,
 		}
 	);
 
 	function cancelRepeatedResponse(result: AxiosResponse | AxiosError) {
-		const c = result.config;
+		console.log("cancel response");
+		const c = AxiosPlus.isCancel(result) ? (result as any).message : result.config;
+		console.log(c);
+
 		const retrying = c.__retried !== undefined && c.__retried !== c.retryLimit;
 		if (!!c.cancelable && !c.repeatable && !retrying) {
 			delete store[result.config.__id!];
@@ -27,6 +33,6 @@ export default function cancelRepeated(axios: AxiosPlus) {
 		return Promise["code" in result ? "reject" : "resolve"](result);
 	}
 
-	axios.interceptors.response.use(cancelRepeatedResponse, cancelRepeatedResponse);
+	axios.interceptors.response.use(cancelRepeatedResponse, cancelRepeatedResponse, { index: option.resIndex });
 	return axios;
 }

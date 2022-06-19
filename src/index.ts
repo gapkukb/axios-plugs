@@ -5,3 +5,4 @@ export { default as setId } from "./lib/setId";
 export { default as convert } from "./lib/convert";
 export { default as adapter } from "./lib/adapter";
 export { default as retry } from "./lib/retry";
+export { default as cancelRepeated } from "./lib/cancel-repeated";

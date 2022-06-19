@@ -15,12 +15,7 @@ declare module "axios" {
 		retokenShould?(err: AxiosError): boolean;
 	}
 
-	export interface AxiosInterceptorManager {
-		use<T = V>(onFulfilled?: (value: V) => T | Promise<T>, onRejected?: (error: any) => any, options?: AxiosInterceptorOptions): number;
-		prepend<T = V>(
-			onFulfilled?: (value: V) => T | Promise<T>,
-			onRejected?: (error: any) => any,
-			options?: AxiosInterceptorOptions
-		): number;
+	export interface AxiosInterceptorOptions {
+		index: number;
 	}
 }

@@ -1,4 +1,4 @@
-import AxiosPlus from "../core";
+import AxiosPlus, { PluginOptions } from "../core";
 
 type Filter = typeof $filter;
 
@@ -16,7 +16,13 @@ function forEach(entries: any, f: Filter) {
 	return entries;
 }
 
-export default function filter(axios: AxiosPlus, filter: Filter = $filter) {
+export default function filter(
+	axios: AxiosPlus,
+	option: PluginOptions<{
+		filter?: Filter;
+	}>
+) {
+	const filter = option.filter || $filter;
 	axios.interceptors.request.use(
 		function (config) {
 			console.log("filter");
@@ -29,6 +35,7 @@ export default function filter(axios: AxiosPlus, filter: Filter = $filter) {
 			runWhen(config) {
 				return config.__retried === undefined;
 			},
+			index: option.reqIndex,
 		}
 	);
 }

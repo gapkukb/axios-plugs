@@ -85,7 +85,7 @@ export function getScript(config: AxiosRequestConfig, isJsonp: boolean): Promise
 	});
 }
 
-export function adapter(config: AxiosRequestConfig, backupAdapter: AxiosAdapter) {
+function _adapter(config: AxiosRequestConfig, backupAdapter: AxiosAdapter) {
 	console.log("adapter");
 	if (config.dataType === "jsonp") {
 		return getScript(config, true);
@@ -96,13 +96,8 @@ export function adapter(config: AxiosRequestConfig, backupAdapter: AxiosAdapter)
 	return backupAdapter!(config);
 }
 
-export default function useGetScript(
-	http: AxiosPlus,
-	config?: {
-		default?: boolean;
-	}
-) {
+export default function adapter(http: AxiosPlus) {
 	const backupAdapter = http.defaults.adapter;
-	http.defaults.adapter = (config) => adapter(config, backupAdapter!);
+	http.defaults.adapter = (config) => _adapter(config, backupAdapter!);
 	return http;
 }

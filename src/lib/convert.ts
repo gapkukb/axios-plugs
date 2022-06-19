@@ -1,8 +1,8 @@
 import { AxiosRequestConfig } from "axios";
-import AxiosPlus from "../core";
+import AxiosPlus, { PluginOptions } from "../core";
 
-export default function convert(axios: AxiosPlus) {
-	axios.defaults.transformRequest.unshift(function open(data) {
+export default function convert(axios: AxiosPlus, option: PluginOptions) {
+	axios.defaults.transformRequest.splice(option.reqIndex, 0, function open(data) {
 		if (this.__retried !== undefined) return data;
 		console.log("convert");
 		if (this.dataType === "formData") {
@@ -11,11 +11,9 @@ export default function convert(axios: AxiosPlus) {
 				return acc;
 			}, new FormData());
 		}
-
 		if (this.dataType === "form") {
 			return new URLSearchParams(data);
 		}
-
 		return data;
 	});
 }
