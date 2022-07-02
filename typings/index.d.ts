@@ -12,6 +12,8 @@ declare module "axios" {
 		cache?: boolean;
 		dataType?: "jsonp" | "script" | "json" | "form" | "formData";
 		jsonpCallback?: string;
+		poillingInterval?:number;
+		poillingInterval?:number;
 		retokenShould?(err: AxiosError): boolean;
 	}
 
