@@ -19,3 +19,16 @@ declare module "axios" {
 		index: number;
 	}
 }
+
+declare global {
+	export type Path = "/purchase/[shopid]/[itemid]/args/[...args]";
+	export type Parts<S extends string> = S extends `${any}[${infer A}]${infer B}` ? A | Parts<B> : never;
+	type ParamValue<K> = K extends `...${string}` ? string[] : string;
+	type RemoveDots<S extends string> = K extends `...${infer Sub}` ? Sub : S;
+	export type Params<P extends string> = { [K in P]: ParamValue<K> };
+
+	type c = ParamValue<"...args">;
+	type a = Parts<"[shopid]/[itemid]/abc/[...args]">;
+	type b = Params<a>;
+	type d = RemoveDots<a>;
+}
