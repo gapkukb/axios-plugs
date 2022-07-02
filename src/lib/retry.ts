@@ -5,7 +5,7 @@ export interface RetryOptions {
 	__retried?: number;
 	retryLimit?: number;
 	retryDelay?: number;
-	retryShould?(error: AxiosError): Boolean;
+	retryShould?(error: AxiosResponse | AxiosError): Boolean;
 }
 
 /**
@@ -22,12 +22,18 @@ export interface RetryOptions {
         console.log("Error", error.message);
     }
  */
+
+function defaultRetryShould(result: AxiosResponse | AxiosError) {
+	if (AxiosPlus.isAxiosError(result)) {
+		return result.code === AxiosError.ECONNABORTED || result.code === AxiosError.ETIMEDOUT || result.response?.status! >= 500;
+	}
+	return false;
+}
 export default function retry(axios: AxiosPlus, option: PluginOptions) {
 	axios.interceptors.request.use(
 		function beforeRetry(config) {
 			config.retryDelay ??= 3000;
-			config.retryShould ||= (e: any) =>
-				e.response?.status! >= 500 || e.code === AxiosError.ECONNABORTED || e.code === AxiosError.ETIMEDOUT;
+			config.retryShould ||= defaultRetryShould;
 			return config;
 		},
 		undefined,
@@ -39,30 +45,25 @@ export default function retry(axios: AxiosPlus, option: PluginOptions) {
 		}
 	);
 
-	axios.interceptors.response.use(
-		undefined,
-		function retryInterceptorsResponse(err: AxiosError) {
-			console.log(err.config);
+	function retryInterceptorsResponse(result: AxiosResponse | AxiosError) {
+		console.log("retry");
+		const c = AxiosPlus.getConfig(result);
+		//limit = falsy 不启用重试
+		//limit = retried 达到次数上限
+		//should=>false 不满足重试条件
+		if (!c.retryLimit || c.__retried === c.retryLimit || !c.retryShould!(result)) return AxiosPlus.unifyReturn(result);
+		return new Promise(() => {
+			setTimeout(() => {
+				c.__retried ??= 0;
+				c.__retried!++;
+				console.log(`正在进行第${c.__retried}/${c.retryLimit}次重试`);
+				axios.request(c);
+			}, c.retryDelay);
+		});
+	}
 
-			console.log("retry");
-			const c = err.config as any;
-			//limit = falsy 不启用重试
-			//limit = retried 达到次数上限
-			//should=>false 不满足重试条件
-			return Promise.reject(err);
-			// if (!c.retryLimit || c.__retried === c.retryLimit || !c.retryShould!(err)) return Promise.reject(err);
-			return new Promise((resolve) => {
-				setTimeout(() => {
-					c.__retried ??= 0;
-					c.__retried!++;
-					console.log(`正在进行第${c.__retried}/${c.retryLimit}次重试`);
-					resolve(axios.request(c));
-				}, c.retryDelay);
-			});
-		},
-		{
-			index: option.resIndex,
-		}
-	);
+	axios.interceptors.response.use(retryInterceptorsResponse, retryInterceptorsResponse, {
+		index: option.resIndex,
+	});
 	return axios;
 }

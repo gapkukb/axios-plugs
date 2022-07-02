@@ -11,6 +11,7 @@ import axios, {
 	AxiosResponse,
 	AxiosRequestHeaders,
 	AxiosResponseHeaders,
+	AxiosError,
 } from "axios";
 //@ts-ignore
 import { merge } from "axios/lib/utils";
@@ -39,6 +40,12 @@ export class AxiosPlus extends Axios {
 	static all = axios.all;
 	static spread = axios.spread;
 	static isAxiosError = axios.isAxiosError;
+	static getConfig(result: AxiosResponse | AxiosError): AxiosRequestConfig {
+		return this.isCancel(result) ? (result as any).message.__config : result.config;
+	}
+	static unifyReturn(result: AxiosResponse | AxiosError): Promise<any> {
+		return "code" in result ? Promise.reject(result) : (result as any);
+	}
 
 	declare defaults: Omit<AxiosDefaults<any>, "transformRequest" | "transformResponse"> & {
 		transformRequest: AxiosPlusRequestTransformer[];
@@ -52,14 +59,18 @@ export class AxiosPlus extends Axios {
 		// 改写use方法，支持按下标插入
 		Object.defineProperty(this.interceptors.request.constructor.prototype, "use", {
 			value: function use(fulfilled: any, rejected: any, options: any) {
-				if (options.index < 0) return;
-				this.handlers.splice(options.index, 0, {
+				let index = Math.max(options.index, 0);
+				this.handlers[index] = {
 					fulfilled: fulfilled,
 					rejected: rejected,
 					synchronous: options ? options.synchronous : false,
 					runWhen: options ? options.runWhen : null,
-				});
-				return options.index;
+				};
+				console.log("----------------------------");
+
+				console.log(this.handlers);
+
+				return index;
 			},
 		});
 	}

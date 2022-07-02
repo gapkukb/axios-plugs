@@ -20,29 +20,19 @@ export default function loading(
 		undefined,
 		{
 			runWhen(config: AxiosRequestConfig) {
-				return config.__retried === undefined;
+				return !!config.loading && config.__retried === undefined;
 			},
 			index: option.reqIndex,
 		}
 	);
 
 	function loadingClose(result: AxiosResponse | AxiosError) {
-		console.log("----------------------------------");
-		console.log(Object.keys(result));
-		//@ts-ignore
-		console.log(result.message);
-		let c: AxiosRequestConfig;
-		if (AxiosPlus.isCancel(result)) {
-			if (!--loadingCount) option.close();
-		} else {
-			const c = result.config;
-			const retrying = c.__retried !== undefined && c.__retried !== c.retryLimit;
-
-			if (c.loading && !retrying && !--loadingCount) {
-				option.close();
-			}
+		const c = AxiosPlus.getConfig(result);
+		const retrying = c.__retried !== undefined && c.__retried !== c.retryLimit;
+		if (c.loading && !retrying && !--loadingCount) {
+			option.close();
 		}
-		return Promise["code" in result ? "reject" : "resolve"](result);
+		return AxiosPlus.unifyReturn(result);
 	}
 
 	axios.interceptors.response.use(loadingClose, loadingClose, { index: option.resIndex });
