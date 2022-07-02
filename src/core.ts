@@ -46,6 +46,19 @@ export class AxiosPlus extends Axios {
 	static unifyReturn(result: AxiosResponse | AxiosError): Promise<any> {
 		return "code" in result ? Promise.reject(result) : (result as any);
 	}
+	static polling<T extends (...ars: any[]) => Promise<any>>(f: T, interval: number = 3000) {
+		let timer = null as unknown as number;
+		function polling(...args: Parameters<T>): ReturnType<T> {
+			//@ts-ignore
+			return f(args).finally(() => {
+				timer = setTimeout(f.bind(f), interval);
+			});
+		}
+		polling.stop = function stop() {
+			clearTimeout(timer);
+		};
+		return polling;
+	}
 
 	declare defaults: Omit<AxiosDefaults<any>, "transformRequest" | "transformResponse"> & {
 		transformRequest: AxiosPlusRequestTransformer[];
@@ -82,9 +95,13 @@ export class AxiosPlus extends Axios {
 	createMethod(method: TMethod) {
 		const _this = this;
 		const filed = ["put", "post", "patch"].includes(method) ? "data" : "params";
-		return function $request(url: string, cfg: AxiosRequestConfig = {}) {
+		return function $request<Q = any, R = any>(url: string, cfg: AxiosRequestConfig = {}) {
+			// 解析url中的参数，/path/{id} | /path/:id两种格式
 			dispatch.abort = noop;
-			function dispatch(payload?: any, config: AxiosRequestConfig = {}) {
+			function dispatch<P = Partial<Q>>(
+				payload?: Q,
+				config: Omit<AxiosRequestConfig<P>, "params"> & { params?: P } = {}
+			): Promise<R> {
 				const conf: AxiosRequestConfig = {
 					url,
 					method,
@@ -103,7 +120,7 @@ export class AxiosPlus extends Axios {
 					};
 					requests.add(dispatch.abort);
 				}
-				return _this.request(MC).finally(() => {
+				return _this.request<Q, R>(MC).finally(() => {
 					requests.delete(dispatch.abort);
 				});
 			}

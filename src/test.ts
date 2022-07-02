@@ -26,6 +26,13 @@ axios.register(adapter, { reqIndex: -1, resIndex: -1 });
 
 const { get, post, put, delete: del } = axios.createMethods("get", "post", "put", "delete");
 
-const getBaidu = post("http://www.baidu.com", { dataType: "form" });
-getBaidu();
-// getBaidu();
+const getBaidu = post<{ a: string }, { b: string }>("http://www.baidu.com", { dataType: "form" });
+const getBaidu2 = AxiosPlus.polling(post<{ a: string }, { b: string }>("http://www.baidu.com", { dataType: "form" }));
+
+getBaidu2({
+	a: "1",
+}).then((res) => {
+	res;
+});
+getBaidu().then((res) => {});
+getBaidu2.stop();
