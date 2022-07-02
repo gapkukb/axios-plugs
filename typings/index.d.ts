@@ -12,8 +12,8 @@ declare module "axios" {
 		cache?: boolean;
 		dataType?: "jsonp" | "script" | "json" | "form" | "formData";
 		jsonpCallback?: string;
-		poillingInterval?:number;
-		poillingInterval?:number;
+		poillingInterval?: number;
+		poillingInterval?: number;
 		retokenShould?(err: AxiosError): boolean;
 	}
 
@@ -23,14 +23,18 @@ declare module "axios" {
 }
 
 declare global {
-	export type Path = "/purchase/[shopid]/[itemid]/args/[...args]";
-	export type Parts<S extends string> = S extends `${any}[${infer A}]${infer B}` ? A | Parts<B> : never;
+	type Path = "/purchase/[shopid]/[itemid]/args/[...args]";
+
+	type PathVariable<S extends string,T = S extends `${any}{${infer A}}${infer B}` ? A | Parts<B> : never> = T;
+
+
+
 	type ParamValue<K> = K extends `...${string}` ? string[] : string;
-	type RemoveDots<S extends string> = K extends `...${infer Sub}` ? Sub : S;
-	export type Params<P extends string> = { [K in P]: ParamValue<K> };
+	type RemoveDots<S extends string> = S extends `...${infer Sub}` ? Sub : S;
+	type Params<P extends string> = { [K in P as RemoveDots<K>]: ParamValue<K> };
 
 	type c = ParamValue<"...args">;
-	type a = Parts<"[shopid]/[itemid]/abc/[...args]">;
+	type a = PathVariable<"{shopid}/[itemid]/abc/[...args]">;
 	type b = Params<a>;
-	type d = RemoveDots<a>;
+	type d = RemoveDots<"...args">;
 }

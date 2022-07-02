@@ -43,9 +43,11 @@ export class AxiosPlus extends Axios {
 	static getConfig(result: AxiosResponse | AxiosError): AxiosRequestConfig {
 		return this.isCancel(result) ? (result as any).message.__config : result.config;
 	}
+
 	static unifyReturn(result: AxiosResponse | AxiosError): Promise<any> {
 		return "code" in result ? Promise.reject(result) : (result as any);
 	}
+
 	static polling<T extends (...ars: any[]) => Promise<any>>(f: T, interval: number = 3000) {
 		let timer = null as unknown as number;
 		function polling(...args: Parameters<T>): ReturnType<T> {
@@ -64,6 +66,7 @@ export class AxiosPlus extends Axios {
 		transformRequest: AxiosPlusRequestTransformer[];
 		transformResponse: AxiosPlusResponseTransformer[];
 	};
+	
 	constructor(private config: AxiosRequestConfig = {}) {
 		config.cancelable ??= true;
 		super(config);

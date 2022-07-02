@@ -2,7 +2,6 @@ import { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import AxiosPlus, { PluginOptions } from "../core";
 import { noop } from "./utils";
 
-let loadingCount = 0;
 export default function polling(
 	axios: AxiosPlus,
 	option: PluginOptions<{
@@ -12,7 +11,7 @@ export default function polling(
 ) {
 	const regexp = new RegExp(`\\${option.prefix}([^${option.prefix}])+\\${option.suffix}`, 'g')
 	axios.interceptors.request.use(
-		function (config) {
+		function fillPathVarsRequest(config) {
 			console.log("fillpathvars");
 			config.url = config.url.replace(regexp, (_, name) => {
 				let payload = config.params[name] ? config.params : config.data
