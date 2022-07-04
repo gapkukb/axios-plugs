@@ -7,3 +7,4 @@ export { default as adapter } from "./lib/adapter";
 export { default as retry } from "./lib/retry";
 export { default as cancelRepeated } from "./lib/cancel-repeated";
 export { default as cancellation } from "./lib/cancellation";
+export { default as polling } from "./lib/polling";

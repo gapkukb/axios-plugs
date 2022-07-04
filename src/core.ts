@@ -31,7 +31,7 @@ export type PluginOptions<T = unknown> = {
 	resIndex: number;
 } & T;
 
-export class AxiosPlus extends Axios {
+export class AxiosPlus<ApiDoc> extends Axios {
 	static Cancel = axios.Cancel;
 	static CancelToken = axios.CancelToken;
 	static Axios = axios.Axios;
@@ -48,19 +48,6 @@ export class AxiosPlus extends Axios {
 		return "code" in result ? Promise.reject(result) : (result as any);
 	}
 
-	static polling<T extends (...ars: any[]) => Promise<any>>(f: T, interval: number = 3000) {
-		let timer = null as unknown as number;
-		function polling(...args: Parameters<T>): ReturnType<T> {
-			//@ts-ignore
-			return f(args).finally(() => {
-				timer = setTimeout(f.bind(f), interval);
-			});
-		}
-		polling.stop = function stop() {
-			clearTimeout(timer);
-		};
-		return polling;
-	}
 
 	declare defaults: Omit<AxiosDefaults<any>, "transformRequest" | "transformResponse"> & {
 		transformRequest: AxiosPlusRequestTransformer[];
