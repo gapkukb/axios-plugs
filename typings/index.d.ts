@@ -23,18 +23,51 @@ declare module "axios" {
 }
 
 declare global {
-	type Path = "/purchase/[shopid]/[itemid]/args/[...args]";
+	type A = "{aaa}/{bbbb}/cccc/{dddd}";
+	type B = "[aaa]/[bbbb]/cccc/[dddd]";
+	type C = ":aaa/:bbbb/cccc/:dddd";
 
-	type PathVariable<S extends string,T = S extends `${any}{${infer A}}${infer B}` ? A | Parts<B> : never> = T;
+	type Parts<T extends string, P extends string, N extends string> = T extends `${any}${P}${infer A}${N}${infer B}` ? A | Parts<B, P, N> : never
+
+	type PathVariablesColon<T extends string> = T extends `${any}:${infer A}/${infer B}` ? A | PathVariablesColon<B> : T extends `${any}:${infer A}` ? A : never
+	type PathVariablesSquare<T extends string> = Parts<T, "[", "]">
+	type PathVariablesCurly<T extends string> = Parts<T, "{", "}">
+
+	type a = PathVariablesCurly<A>
+	type b = PathVariablesSquare<B>
+	type c = PathVariablesColon<C>
 
 
+	type D = {
+		a: string,
+		b: {
+			c: number,
+			d: {
+				e: boolean,
+				f: D
+			}
+		}
+	}
 
-	type ParamValue<K> = K extends `...${string}` ? string[] : string;
-	type RemoveDots<S extends string> = S extends `...${infer Sub}` ? Sub : S;
-	type Params<P extends string> = { [K in P as RemoveDots<K>]: ParamValue<K> };
+	type PickValueByPath<T, K extends string> = K extends keyof T
+		? Pick<T, K>[K]
+		: K extends `${infer L}.${infer R}`
+		? {
+			[P in L]: P extends keyof T ? GetValue<T[P], R> : unknown
+		}[L]
+		: unknown
 
-	type c = ParamValue<"...args">;
-	type a = PathVariable<"{shopid}/[itemid]/abc/[...args]">;
-	type b = Params<a>;
-	type d = RemoveDots<"...args">;
+	type PickValue<T, K extends string> = K extends keyof T
+		? Pick<T, K>
+		: K extends `${infer L}.${infer R}`
+		? {
+			[P in L]: P extends keyof T ? GetValue<T[P], R> : unknown
+		}
+		: unknown
+
+	
+	type a = PickValueByPath<D,"b.d">
+	type b = PickValueByPath<D,"d">
+
+	
 }

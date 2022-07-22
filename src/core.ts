@@ -53,7 +53,7 @@ export class AxiosPlus<ApiDoc> extends Axios {
 		transformRequest: AxiosPlusRequestTransformer[];
 		transformResponse: AxiosPlusResponseTransformer[];
 	};
-	
+
 	constructor(private config: AxiosRequestConfig = {}) {
 		config.cancelable ??= true;
 		super(config);
@@ -82,7 +82,7 @@ export class AxiosPlus<ApiDoc> extends Axios {
 		plugin(this, pluginConfig);
 	}
 
-	createMethod(method: TMethod) {
+	createMethod(method: TMethod, prefix: string = "") {
 		const _this = this;
 		const filed = ["put", "post", "patch"].includes(method) ? "data" : "params";
 		return function $request<Q = any, R = any>(url: string, cfg: AxiosRequestConfig = {}) {
