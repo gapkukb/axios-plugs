@@ -53,9 +53,9 @@ declare global {
 		? Pick<T, K>[K]
 		: K extends `${infer L}.${infer R}`
 		? {
-			[P in L]: P extends keyof T ? GetValue<T[P], R> : unknown
+			[P in L]: P extends keyof T ? GetValue<T[P], R> : never
 		}[L]
-		: unknown
+		: never
 
 	type PickValue<T, K extends string> = K extends keyof T
 		? Pick<T, K>
@@ -67,7 +67,7 @@ declare global {
 
 	
 	type a = PickValueByPath<D,"b.d">
-	type b = PickValueByPath<D,"d">
+	type b = PickValue<D,"d">
 
 	
 }
