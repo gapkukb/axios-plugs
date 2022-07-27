@@ -49,7 +49,23 @@ declare global {
 		}
 	}
 
-	type PickValueByPath<T, K extends string> = K extends keyof T
+	type DeepPickByPath<T, K extends string> = K extends keyof T
+		? Pick<T, K>
+		: K extends `${infer L}.${infer R}`
+		? {
+			[P in L]: P extends keyof T ? GetValue<T[P], R> : never
+		}
+		: never
+
+	type DeepPick<T, K extends string> = K extends keyof T
+		? Pick<T, K>
+		: K extends `${infer L}.${infer R}`
+		? {
+			[P in L]: P extends keyof T ? GetValue<T[P], R> : never
+		}
+		: never
+
+	type DeepPickValueByPath<T, K extends string> = K extends keyof T
 		? Pick<T, K>[K]
 		: K extends `${infer L}.${infer R}`
 		? {
@@ -57,17 +73,13 @@ declare global {
 		}[L]
 		: never
 
-	type PickValue<T, K extends string> = K extends keyof T
-		? Pick<T, K>
-		: K extends `${infer L}.${infer R}`
-		? {
-			[P in L]: P extends keyof T ? GetValue<T[P], R> : unknown
-		}
-		: unknown
+	type DeepPickValue<T extends object, K extends string> = {
+		[P in keyof T]: P extends K ? T[P] : T[P] extends object ? PickValue<T[P], K> : never
+	}[keyof T]
 
-	
-	type a = PickValueByPath<D,"b.d">
-	type b = PickValue<D,"d">
 
-	
+	type a = ExtractValueByPath<D, "b.d">
+	type b = ExtractValue<D, "d">
+
+	type c = Pick<D, "a">
 }
