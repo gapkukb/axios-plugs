@@ -42,3 +42,16 @@ export function serialize(obj, prefix) {
 	})
 	return pairs.join('&')
 }
+
+export type Seperator = ":" | "{}" | "[]" | RegExp
+export function seperator(sep: Seperator = ":") {
+	let regexp: RegExp
+	if (sep === ":") {
+		regexp = new RegExp(`:([^:\\/]+)`, 'g')
+	} else if (sep === "{}") {
+		regexp = new RegExp(`{([^}]+)}`, 'g')
+	} else if (sep === "[]") {
+		regexp = new RegExp(`\\[([^\\]]+)\\]`, 'g')
+	}
+	return regexp || sep
+}
