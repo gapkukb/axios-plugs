@@ -53,7 +53,7 @@ export class AxiosPlus<ApiDoc> extends Axios {
 		transformRequest: AxiosPlusRequestTransformer[];
 		transformResponse: AxiosPlusResponseTransformer[];
 	};
-	
+
 	constructor(private config: AxiosRequestConfig = {}) {
 		config.cancelable ??= true;
 		super(config);
@@ -82,10 +82,10 @@ export class AxiosPlus<ApiDoc> extends Axios {
 		plugin(this, pluginConfig);
 	}
 
-	createMethod(method: TMethod) {
+	createMethod(method: TMethod, prefix: string = "") {
 		const _this = this;
 		const filed = ["put", "post", "patch"].includes(method) ? "data" : "params";
-		return function $request<Q = any, R = any>(url: string, cfg: AxiosRequestConfig = {}) {
+		return function $request<Q = ApiDoc[U][TMethod], R = any, U extends keyof ApiDoc = unknown>(url: U | ({} & string), cfg: AxiosRequestConfig = {}) {
 			// 解析url中的参数，/path/{id} | /path/:id两种格式
 			dispatch.abort = noop;
 			function dispatch<P = Partial<Q>>(
@@ -130,8 +130,8 @@ export class AxiosPlus<ApiDoc> extends Axios {
 export default AxiosPlus;
 
 const requests: Set<Function> = new Set();
-export function abortAll() {
+export function abortAll(excludes: []) {
 	requests.forEach((item) => {
-		item();
+		if (!excludes.includes(item)) item();
 	});
 }

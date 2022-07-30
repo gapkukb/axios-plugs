@@ -1,25 +1,24 @@
 import { AxiosError, AxiosRequestConfig, AxiosResponse } from "axios";
 import AxiosPlus, { PluginOptions } from "../core";
-import { noop } from "./utils";
+import { noop, seperator as _seperator, Seperator } from "./utils";
 
-export default function polling(
+export default function replacePathVars(
 	axios: AxiosPlus,
-	option: PluginOptions<{
-		prefix: string,
-		suffix: string
-	}>
+	seperator: Seperator
 ) {
-	const regexp = new RegExp(`\\${option.prefix}([^${option.prefix}])+\\${option.suffix}`, 'g')
+	const regexp = _seperator(seperator)
 	axios.interceptors.request.use(
 		function fillPathVarsRequest(config) {
-			console.log("fillpathvars");
+			if (!regexp) return config
 			config.url = config.url.replace(regexp, (_, name) => {
-				let payload = config.params[name] ? config.params : config.data
+				let payload = typeof config.params[name] !== 'undefined' ? config.params : config.data
 				let value = payload[name]
 				delete payload[name]
-				return value
+				return value || name
 			})
 			return config;
+		},undefined,{
+			runWhen:config=>!config.__retried
 		}
 	);
 }

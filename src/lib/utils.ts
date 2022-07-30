@@ -43,4 +43,15 @@ export function serialize(obj: Object, prefix?: string) {
 	return pairs.join("&");
 }
 
-console.log(getHash(serialize({ d: "阿西吧", a: 1, b: 2, c: "123" })));
+export type Seperator = ":" | "{}" | "[]" | RegExp;
+export function seperator(sep: Seperator = ":") {
+	let regexp: RegExp | null = null;
+	if (sep === ":") {
+		regexp = new RegExp(`:([^:\\/]+)`, "g");
+	} else if (sep === "{}") {
+		regexp = new RegExp(`{([^}]+)}`, "g");
+	} else if (sep === "[]") {
+		regexp = new RegExp(`\\[([^\\]]+)\\]`, "g");
+	}
+	return regexp || sep;
+}
