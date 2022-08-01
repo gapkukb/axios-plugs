@@ -55,3 +55,5 @@ export function seperator(sep: Seperator = ":") {
 	}
 	return regexp || sep;
 }
+
+export type Awaited<T> = T extends Promise<infer R> ? Awaited<R> : T
