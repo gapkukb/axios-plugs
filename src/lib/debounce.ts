@@ -3,9 +3,10 @@ import AxiosPlus, { PluginOptions } from "../core";
 
 const store: Record<number, Function> = {};
 
-export default function cancelRepeated(axios: AxiosPlus, option: PluginOptions) {
+/** 请求防抖，取消掉上次未完成的请求，与throttle互斥 */
+export default function debounce(axios: AxiosPlus, option: PluginOptions) {
 	axios.interceptors.request.use(
-		function cancelRepeatedRequest(config) {
+		function debounceRequest(config) {
 			console.log("cancel request");
 
 			// store[config.__id!]?.(config);
@@ -21,7 +22,7 @@ export default function cancelRepeated(axios: AxiosPlus, option: PluginOptions) 
 		}
 	);
 
-	function cancelRepeatedResponse(result: AxiosResponse | AxiosError) {
+	function debounceResponse(result: AxiosResponse | AxiosError) {
 		const c = AxiosPlus.getConfig(result);
 		const retrying = c.__retried !== undefined && c.__retried !== c.retryLimit;
 		if (!!c.cancelable && !c.repeatable && !retrying) {
@@ -30,6 +31,6 @@ export default function cancelRepeated(axios: AxiosPlus, option: PluginOptions) 
 		return AxiosPlus.unifyReturn(result);
 	}
 
-	axios.interceptors.response.use(cancelRepeatedResponse, cancelRepeatedResponse, { index: option.resIndex });
+	axios.interceptors.response.use(debounceResponse, debounceResponse, { index: option.resIndex });
 	return axios;
 }
