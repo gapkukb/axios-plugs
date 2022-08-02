@@ -15,7 +15,7 @@ import axios, {
 } from "axios";
 //@ts-ignore
 import { merge } from "axios/lib/utils";
-import { noop } from "./lib/utils";
+import { noop,setId } from "./lib/utils";
 
 type TMethod = Lowercase<Method>;
 
@@ -82,7 +82,7 @@ export class AxiosPlus<ApiDoc> extends Axios {
 		plugin(this, pluginConfig);
 	}
 
-	createMethod(method: TMethod, prefix: string = "") {
+	new(method: TMethod, prefix: string = "") {
 		const _this = this;
 		const filed = ["put", "post", "patch"].includes(method) ? "data" : "params";
 		return function $request<Q = ApiDoc[U][TMethod], R = any, U extends keyof ApiDoc = unknown>(url: U | ({} & string), cfg: AxiosRequestConfig = {}) {
@@ -100,6 +100,7 @@ export class AxiosPlus<ApiDoc> extends Axios {
 				//mergedConfig
 				const MC = merge(cfg, conf, config);
 				MC.__abort = noop;
+				setId(MC)
 				const cancelable = MC.cancelable ?? _this.config.cancelable;
 				if (cancelable !== false) {
 					const source = AxiosPlus.CancelToken.source();

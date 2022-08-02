@@ -1,10 +1,11 @@
-export function noop(...args: any[]): any {}
+import { AxiosRequestConfig } from "axios"
+export function noop(...args: any[]): any { }
 
 function imul(h1: number, h2: number) {
 	return Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
 }
 
-export function getHash(str: string, seed = 0) {
+export function toHash(str: string, seed = 0) {
 	let h1 = 0xdeadbeef ^ seed,
 		h2 = 0x41c6ce57 ^ seed;
 	for (let i = 0, ch; i < str.length; i++) {
@@ -32,15 +33,28 @@ export function serialize(obj: Object, prefix?: string) {
 			//@ts-ignore
 			const value = obj[key];
 			const enkey = encodeURIComponent(key);
+			const fullKey = prefix ? prefix + "[" + enkey + "]" : enkey
 			let pair: any;
 			if (typeof value === "object") {
-				pair = serialize(value, prefix ? prefix + "[" + enkey + "]" : enkey);
+				pair = serialize(value, fullKey);
 			} else {
-				pair = (prefix ? prefix + "[" + enkey + "]" : enkey) + "=" + encodeURIComponent(value);
+				pair = fullKey + "=" + encodeURIComponent(value);
 			}
 			pairs.push(pair);
 		});
 	return pairs.join("&");
+}
+
+export function setId(config: AxiosRequestConfig) {
+	if (config.__id === undefined) {
+		let s = config.method + config.url
+		if (config.strictMode) {
+			s += serialize(config.params || {})
+			s += serialize(config.data || {})
+		}
+		config.__id = toHash(s)
+	}
+	return config
 }
 
 export type Seperator = ":" | "{}" | "[]" | RegExp;
