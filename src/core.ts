@@ -63,6 +63,10 @@ export default class AxiosPlus extends Axios {
 		}, Object.create(null) as Record<M[number], ReturnType<typeof this.init>>);
 	}
 
+	plugin<T, R>(plugin: (instance: this, options?: T) => R, options?: T): R {
+		return plugin(this, options);
+	}
+
 	extend(config?: AxiosPlusRequestConfig) {
 		const _config = axios.mergeConfig(this.defaults, config);
 		const newer = new AxiosPlus(_config);
