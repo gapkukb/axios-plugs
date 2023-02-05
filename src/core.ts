@@ -1,6 +1,6 @@
 import axios, { Axios, AxiosDefaults, AxiosRequestConfig, AxiosResponse, Method } from "axios";
 import { AxiosPlusRequestConfig } from "./interface";
-import { noop } from "./lib/utils";
+import { getId, noop } from "./lib/utils";
 
 type Methods = Lowercase<Method>;
 
@@ -21,27 +21,34 @@ export default class AxiosPlus extends Axios {
 				...config[field],
 			};
 			_action.abort = noop;
+			_action.__id__ = -1;
 
 			function _action(payload?: Record<string | number, any>, configure: AxiosPlusRequestConfig = {}) {
-				let AC = new AbortController();
+				let AC: AbortController | null = null;
+				const _payload = {
+					...config[field],
+					...payload,
+					...configure[field],
+				};
 
-				const final = axios.mergeConfig(config, {
+				const final: AxiosPlusRequestConfig = axios.mergeConfig(config, {
 					url,
 					method,
-					signal: AC.signal,
 					...configure,
-					[field]: {
-						...config[field],
-						...payload,
-						...configure[field],
-					},
-					__abort__: AC.abort,
+					[field]: _payload,
+					__abort__: noop,
 				}) as AxiosPlusRequestConfig;
 
-				_action.abort = final.__abort as any;
+				// 每次请求的唯一id，用于取消重复请求
+				final.__id__ = getId(config);
+
+				if (final.cancelable) {
+					AC = new AbortController();
+					final.signal = AC.signal;
+					_action.abort = final.__abort__ = AC.abort;
+				}
 				return _this.request(final as any).finally(() => {
-					_action.abort = noop;
-					AC = null as any;
+					_action.abort = final.__abort__ = AC = null as any;
 				});
 			}
 
@@ -70,6 +77,5 @@ export default class AxiosPlus extends Axios {
 	}
 }
 
-const http = new AxiosPlus({ baseURL: "" }).inits("get", "post");
-
-http.get("/123")();
+const instance = new AxiosPlus({ baseURL: "" });
+const http = instance.inits("get", "post");
