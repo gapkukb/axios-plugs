@@ -1,6 +1,6 @@
 import { AxiosRequestConfig } from "axios";
 import { AxiosPlusRequestConfig } from "../interface";
-export function noop(...args: any[]): any {}
+export function noop(): any {}
 
 function imul(h1: number, h2: number) {
 	return Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);

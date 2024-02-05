@@ -1,4 +1,5 @@
 import axios, { Axios, AxiosDefaults, AxiosRequestConfig, AxiosResponse, Method } from "axios";
+import filter from "./filter";
 import { AxiosPlusRequestConfig } from "./interface";
 import { getId, noop } from "./lib/utils";
 
@@ -14,7 +15,10 @@ export default class AxiosPlus extends Axios {
 		const _this = this;
 		const field = ["get", "delete", "head", "options"].includes(method) ? "params" : "data";
 
-		return function _facotry(url: string, config: Omit<AxiosPlusRequestConfig, "url"> = {}) {
+		return function _facotry<Q extends any = any, R extends any = any>(
+			url: string,
+			config: Omit<AxiosPlusRequestConfig, "url"> = {}
+		) {
 			config = axios.mergeConfig(cfg, config);
 			config[field] = {
 				...cfg[field],
@@ -42,10 +46,10 @@ export default class AxiosPlus extends Axios {
 				// 每次请求的唯一id，用于取消重复请求
 				final.__id__ = getId(config);
 
-				if (final.cancelable) {
+				if (final.cancelable ?? true) {
 					AC = new AbortController();
 					final.signal = AC.signal;
-					_action.abort = final.__abort__ = AC.abort;
+					_action.abort = final.__abort__ = AC.abort.bind(AC);
 				}
 				return _this.request(final as any).finally(() => {
 					_action.abort = final.__abort__ = AC = null as any;
@@ -63,17 +67,18 @@ export default class AxiosPlus extends Axios {
 		}, Object.create(null) as Record<M[number], ReturnType<typeof this.init>>);
 	}
 
+	plugin<R>(plugin: (instance: this) => R): R;
+	plugin<T, R>(plugin: (instance: this, options: T) => R, options: T): R;
 	plugin<T, R>(plugin: (instance: this, options?: T) => R, options?: T): R {
 		return plugin(this, options);
 	}
 
 	extend(config?: AxiosPlusRequestConfig) {
-		const _config = axios.mergeConfig(this.defaults, config);
-		const newer = new AxiosPlus(_config);
-		const _this = this;
-		function copy(property: string) {
-			(newer as any).interceptors[property].handlers = (_this as any).interceptors[property].handlers.slice();
-		}
+		config = axios.mergeConfig(this.defaults, config);
+		const newer = new AxiosPlus(config);
+		const copy = (property: "request" | "response") => {
+			(newer as any).interceptors[property].handlers = (this as any).interceptors[property].handlers.slice();
+		};
 		copy("request");
 		copy("response");
 
@@ -81,5 +86,5 @@ export default class AxiosPlus extends Axios {
 	}
 }
 
-const instance = new AxiosPlus({ baseURL: "" });
+const instance = new AxiosPlus({ baseURL: "http://www.baidu.com" });
 const http = instance.inits("get", "post");
